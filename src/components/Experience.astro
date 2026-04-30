@@ -1,0 +1,356 @@
+---
+/**
+ * Experience.astro — Sección de CV: experiencia laboral y educación.
+ *
+ * Usamos un timeline visual que es común en portafolios profesionales.
+ * El dato más importante que aprendes aquí: separar datos de presentación.
+ * Los arrays de objetos aquí son tu "mini-database" del CV.
+ */
+
+interface Job {
+  role: string;
+  company: string;
+  period: string;
+  current?: boolean;
+  description: string;
+  stack: string[];
+}
+
+interface Education {
+  degree: string;
+  institution: string;
+  period: string;
+  notes?: string;
+}
+
+const experience: Job[] = [
+  {
+    role: "Ingeniero Administrador de Sistemas",
+    company: "Universidad (nombre de tu institución)",
+    period: "2023 — Presente",
+    current: true,
+    description:
+      "Desarrollo y mantenimiento de sistemas de gestión académica y financiera. Responsable del sistema de seguimiento de convocatorias de becas, incluyendo backend C# / ASP.NET Core con ADO.NET, stored procedures SQL Server y frontend React + TypeScript.",
+    stack: ["C#", "ASP.NET Core", "SQL Server", "React", "TypeScript", "Blazor"],
+  },
+  {
+    role: "Desarrollador (Servicio Social)",
+    company: "Universidad",
+    period: "2022 — 2023",
+    description:
+      "Construí desde cero un sistema de seguimiento de becas institucional con arquitectura en 3 capas, integrando reportes en Power BI y formularios dinámicos con Blazor.",
+    stack: ["Blazor", "C#", "SQL Server", "Power BI"],
+  },
+  {
+    role: "Co-desarrollador — Proyecto Personal",
+    company: "Kravmaga Gym Manager",
+    period: "2023 — Presente",
+    description:
+      "Co-desarrollo de una aplicación web de gestión para un gimnasio. Arquitectura full-stack con React en el frontend, Node.js en el backend y PostgreSQL via Supabase.",
+    stack: ["React", "Node.js", "PostgreSQL", "Supabase", "TypeScript"],
+  },
+];
+
+const education: Education[] = [
+  {
+    degree: "Ingeniería en Administración de Sistemas",
+    institution: "Tu Universidad",
+    period: "2020 — 2024",
+    notes: "Titulado. Especialización en desarrollo de software y bases de datos.",
+  },
+  {
+    degree: "Educación Bilingüe",
+    institution: "Bachillerato / Preparatoria",
+    period: "Antes de 2020",
+    notes: "Formación bilingüe Español–Inglés.",
+  },
+];
+---
+
+<section id="experiencia">
+  <div class="divider"></div>
+  <div class="section-wrap">
+
+    <span class="section-label">Experiencia & Educación</span>
+    <h2 class="section-title">
+      Mi <span class="gradient-text">trayectoria</span>
+    </h2>
+
+    <div class="exp-layout">
+
+      <!-- Columna izquierda: Experiencia laboral -->
+      <div class="exp-col">
+        <h3 class="col-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          Experiencia laboral
+        </h3>
+
+        <div class="timeline">
+          {experience.map((job, idx) => (
+            <div class="timeline-item">
+              <!-- Dot y línea -->
+              <div class="timeline-dot-wrap">
+                <div class={`timeline-dot ${job.current ? 'dot-active' : ''}`}></div>
+                {idx < experience.length - 1 && <div class="timeline-line"></div>}
+              </div>
+
+              <!-- Contenido -->
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <h4 class="job-role">{job.role}</h4>
+                  {job.current && <span class="current-badge">Actual</span>}
+                </div>
+                <p class="job-company">{job.company}</p>
+                <p class="job-period">{job.period}</p>
+                <p class="job-desc">{job.description}</p>
+                <div class="job-stack">
+                  {job.stack.map(t => <span class="tag">{t}</span>)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Columna derecha: Educación + descargar CV -->
+      <div class="right-col">
+
+        <!-- Educación -->
+        <h3 class="col-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          Educación
+        </h3>
+
+        <div class="edu-list">
+          {education.map(edu => (
+            <div class="edu-card card">
+              <h4 class="edu-degree">{edu.degree}</h4>
+              <p class="edu-inst">{edu.institution}</p>
+              <p class="edu-period">{edu.period}</p>
+              {edu.notes && <p class="edu-notes">{edu.notes}</p>}
+            </div>
+          ))}
+        </div>
+
+        <!-- Idiomas -->
+        <div class="langs-card card" style="margin-top: 16px;">
+          <h3 class="col-title" style="margin-bottom: 16px;">
+            🌐 Idiomas
+          </h3>
+          <div class="lang-item">
+            <span class="lang-name">Español</span>
+            <div class="lang-bar"><div class="lang-fill" style="width:100%"></div></div>
+            <span class="lang-level">Nativo</span>
+          </div>
+          <div class="lang-item">
+            <span class="lang-name">Inglés</span>
+            <div class="lang-bar"><div class="lang-fill" style="width:75%"></div></div>
+            <span class="lang-level">Intermedio–Avanzado</span>
+          </div>
+        </div>
+
+        <!-- CTA: Descargar CV -->
+        <div class="cv-cta">
+          <p class="cv-cta-text">¿Quieres saber más?</p>
+          <a href="/cv-diego.pdf" download class="btn btn-primary" style="width:100%; justify-content: center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar CV completo
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .exp-layout {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .exp-layout { grid-template-columns: 1fr; }
+  }
+
+  /* ── Títulos de columna ── */
+  .col-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+
+  /* ── Timeline ── */
+  .timeline { display: flex; flex-direction: column; }
+
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 20px;
+  }
+
+  .timeline-dot-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 5px;
+  }
+
+  .timeline-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 2px solid var(--bg-2);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dot-active {
+    background: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,198,255,0.5);
+  }
+
+  .timeline-line {
+    width: 1px;
+    flex: 1;
+    min-height: 20px;
+    background: var(--border);
+    margin: 6px 0;
+  }
+
+  .timeline-content { padding-bottom: 36px; }
+
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .job-role {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .current-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: rgba(0,198,255,0.1);
+    color: var(--cyan);
+    border: 1px solid rgba(0,198,255,0.2);
+    font-weight: 600;
+  }
+
+  .job-company {
+    font-size: 0.82rem;
+    color: var(--cyan);
+    margin-bottom: 2px;
+  }
+
+  .job-period {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-family: var(--font-display);
+  }
+
+  .job-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .job-stack { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* ── Educación ── */
+  .edu-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .edu-card { padding: 20px 22px; }
+
+  .edu-degree {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .edu-inst {
+    font-size: 0.82rem;
+    color: var(--purple);
+    margin-bottom: 2px;
+  }
+
+  .edu-period {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    margin-bottom: 6px;
+  }
+
+  .edu-notes {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── Idiomas ── */
+  .langs-card { display: flex; flex-direction: column; gap: 12px; }
+
+  .lang-item {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .lang-name { font-size: 0.82rem; color: var(--text); }
+
+  .lang-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .lang-fill {
+    height: 100%;
+    background: var(--grad);
+    border-radius: 2px;
+  }
+
+  .lang-level {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  /* ── CV CTA ── */
+  .cv-cta {
+    margin-top: 24px;
+    padding: 24px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+  }
+
+  .cv-cta-text {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+</style>

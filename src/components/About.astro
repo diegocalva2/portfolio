@@ -1,0 +1,235 @@
+---
+/**
+ * About.astro — Sección "Sobre mí" con skills organizados por categoría.
+ *
+ * Conceptos:
+ * - Arrays y objetos en el frontmatter como "data layer"
+ * - map() para renderizar listas en el template
+ * - Conditional classes con template literals
+ */
+
+// Organizamos los skills por categoría — esto es datos puros, no lógica de UI
+const skillGroups = [
+  {
+    category: "Backend",
+    color: "cyan",
+    icon: "⚙️",
+    skills: [
+      { name: "C# / ASP.NET Core", level: 75 },
+      { name: "ADO.NET / Stored Procedures", level: 80 },
+      { name: "Node.js", level: 65 },
+      { name: "REST APIs", level: 75 },
+    ]
+  },
+  {
+    category: "Bases de datos",
+    color: "purple",
+    icon: "🗄️",
+    skills: [
+      { name: "SQL Server", level: 85 },
+      { name: "PostgreSQL / Supabase", level: 70 },
+      { name: "T-SQL / Stored Procedures", level: 82 },
+      { name: "Power BI", level: 72 },
+    ]
+  },
+  {
+    category: "Frontend",
+    color: "amber",
+    icon: "🎨",
+    skills: [
+      { name: "React + TypeScript", level: 68 },
+      { name: "Blazor", level: 65 },
+      { name: "HTML / CSS", level: 78 },
+      { name: "Astro", level: 40 },  // ← honestidad importa en un CV
+    ]
+  },
+];
+
+const certs = [
+  "Power BI (Microsoft)",
+  "C# Fundamentals",
+  "SQL (SoloLearn)",
+  "Scrum Fundamentals",
+  "GitHub Basics",
+];
+---
+
+<section id="sobre-mi">
+  <div class="section-wrap">
+    <div class="about-grid">
+
+      <!-- Columna izquierda: Texto bio -->
+      <div class="about-bio">
+        <span class="section-label">Sobre mí</span>
+        <h2 class="section-title" style="margin-bottom: 24px">
+          Desarrollador con<br />
+          <span class="gradient-text">mentalidad analítica</span>
+        </h2>
+
+        <p>
+          Soy Ingeniero Administrador de Sistemas egresado en México,
+          actualmente trabajando como desarrollador en una universidad donde
+          construyo sistemas de gestión académica y financiera.
+        </p>
+        <br />
+        <p>
+          Me especializo en backends con <strong>C# / ASP.NET Core</strong>
+          y bases de datos <strong>SQL Server</strong>, siguiendo arquitecturas
+          en capas con stored procedures como capa de negocio.
+          También desarrollo frontends con React y TypeScript.
+        </p>
+        <br />
+        <p>
+          Mi objetivo a mediano plazo es trabajar en un equipo de software
+          internacional mientras continúo creciendo hacia arquitectura de
+          software y eventualmente un posgrado en el extranjero.
+        </p>
+
+        <!-- Certificaciones -->
+        <div class="certs-block">
+          <p class="certs-label">Certificaciones</p>
+          <div class="certs-list">
+            {certs.map(cert => (
+              <span class="cert-badge">✓ {cert}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Skills -->
+      <div class="skills-col">
+        {skillGroups.map(group => (
+          <div class={`skill-group card card-${group.color}`}>
+            <div class="skill-group-header">
+              <span class="skill-icon">{group.icon}</span>
+              <h3 class="skill-group-title">{group.category}</h3>
+            </div>
+            <div class="skill-list">
+              {group.skills.map(skill => (
+                <div class="skill-item">
+                  <div class="skill-meta">
+                    <span class="skill-name">{skill.name}</span>
+                    <span class={`skill-pct pct-${group.color}`}>{skill.level}%</span>
+                  </div>
+                  <div class="skill-bar">
+                    <div
+                      class={`skill-fill fill-${group.color}`}
+                      style={`width: ${skill.level}%`}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .about-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Bio ── */
+  .about-bio p { color: var(--text-muted); line-height: 1.8; }
+  .about-bio strong { color: var(--text); }
+  .about-bio .section-title { font-size: clamp(1.75rem, 3.5vw, 2.25rem); }
+
+  .certs-block { margin-top: 36px; }
+
+  .certs-label {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .certs-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .cert-badge {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 100px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  /* ── Skills ── */
+  .skills-col { display: flex; flex-direction: column; gap: 16px; }
+
+  .skill-group { padding: 22px 24px; }
+
+  .card-cyan  { border-color: rgba(0,198,255,0.12); }
+  .card-purple { border-color: rgba(139,92,246,0.12); }
+  .card-amber  { border-color: rgba(245,158,11,0.12); }
+
+  .skill-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .skill-icon { font-size: 1.1rem; }
+
+  .skill-group-title {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .skill-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .skill-item {}
+
+  .skill-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .skill-name { font-size: 0.82rem; color: var(--text-muted); }
+
+  .skill-pct { font-size: 0.75rem; font-weight: 600; font-family: var(--font-display); }
+  .pct-cyan   { color: var(--cyan); }
+  .pct-purple { color: var(--purple); }
+  .pct-amber  { color: var(--amber); }
+
+  .skill-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .skill-fill {
+    height: 100%;
+    border-radius: 2px;
+    animation: fillBar 1.2s ease forwards;
+    transform-origin: left;
+  }
+
+  @keyframes fillBar {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  .fill-cyan   { background: linear-gradient(90deg, var(--cyan), rgba(0,198,255,0.5)); }
+  .fill-purple { background: linear-gradient(90deg, var(--purple), rgba(139,92,246,0.5)); }
+  .fill-amber  { background: linear-gradient(90deg, var(--amber), rgba(245,158,11,0.5)); }
+</style>

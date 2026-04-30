@@ -1,0 +1,43 @@
+---
+/**
+ * Layout.astro — El "esqueleto" que envuelve todas las páginas.
+ *
+ * En Astro, los Layouts son componentes reutilizables que definen
+ * la estructura HTML base: <html>, <head>, <body>, fuentes, estilos globales.
+ *
+ * El slot (<slot />) es donde se inyecta el contenido de cada página.
+ * Es el equivalente al {children} de React.
+ */
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Diego | Developer Portfolio",
+  description = "Desarrollador de software especializado en .NET, React y bases de datos SQL."
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+
+    <!-- Favicon simple usando emoji (puedes reemplazarlo con un .ico) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>" />
+  </head>
+  <body>
+    <!-- slot = donde se inserta el contenido de cada página -->
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  /* Importamos los estilos globales aquí para que apliquen a todo */
+  @import '../styles/global.css';
+</style>
