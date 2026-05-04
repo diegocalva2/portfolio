@@ -1,0 +1,36 @@
+---
+/**
+ * index.astro — La página principal (ruta "/").
+ *
+ * En Astro, cada archivo en src/pages/ se convierte en una ruta.
+ * src/pages/index.astro  →  tudominio.com/
+ * src/pages/about.astro  →  tudominio.com/about
+ *
+ * Esta página es solo un ensamblador: importa los componentes
+ * y los organiza. Toda la lógica vive dentro de cada componente.
+ *
+ * Piensa en esto como el "App.jsx" de React, pero renderizado en el servidor.
+ */
+
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import About from '../components/About.astro';
+import Projects from '../components/Projects.astro';
+import Experience from '../components/Experience.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="Diego | Developer Portfolio"
+  description="Desarrollador de software especializado en C# ASP.NET Core, SQL Server y React. Basado en Monterrey, México."
+>
+  <Nav />
+  <main>
+    <Hero />
+    <About />
+    <Projects />
+    <Experience />
+  </main>
+  <Footer />
+</Layout>

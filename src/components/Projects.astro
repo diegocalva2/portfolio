@@ -1,0 +1,368 @@
+---
+/**
+ * Projects.astro — Muestra tus proyectos como tarjetas interactivas.
+ *
+ * Conceptos:
+ * - Type annotations en TypeScript dentro del frontmatter
+ * - Conditional rendering con ternarios
+ * - Cómo estructurar datos de proyectos para escalabilidad
+ * - Composición: usar un componente dentro de otro (ProjectCarousel)
+ */
+
+import ProjectCarousel from './ProjectCarousel.astro';
+
+// Definimos un tipo para asegurar consistencia en los datos
+interface Slide {
+  src: string;
+  caption: string;
+}
+
+interface Project {
+  title: string;
+  description: string;
+  longDesc: string;
+  stack: string[];
+  stackColor: string;
+  status: "En producción" | "En desarrollo" | "Completado";
+  highlights: string[];
+  github?: string;
+  demo?: string;
+  featured?: boolean;
+  /** Si tiene slides, se muestra un carrusel de capturas */
+  slides?: Slide[];
+}
+
+/**
+ * Slides del sistema Kravmaga.
+ *
+ * → PARA AGREGAR TUS CAPTURAS REALES:
+ *   1. Toma screenshots de tu sistema (F12 → Device toolbar para simular distintas vistas)
+ *   2. Guárdalos como: public/img/krav-01.png, krav-02.png, etc.
+ *   3. Reemplaza las rutas "/img/krav-placeholder-N.svg" con "/img/krav-0N.png"
+ *
+ * Tip de naming: usa nombres descriptivos de la PANTALLA, no del número.
+ * Ejemplo: krav-dashboard.png, krav-members.png, krav-payments.png
+ */
+const kravSlides: Slide[] = [
+  { src: "/img/krav-placeholder-1.svg", caption: "Dashboard principal — métricas y resumen del gimnasio" },
+  { src: "/img/krav-placeholder-2.svg", caption: "Gestión de miembros y membresías activas" },
+  { src: "/img/krav-placeholder-3.svg", caption: "Control de pagos y vencimientos" },
+  { src: "/img/krav-placeholder-4.svg", caption: "Registro de asistencia y clases" },
+];
+
+const projects: Project[] = [
+  {
+    title: "Kravmaga Gym Manager",
+    description: "Sistema de gestión completo para un gimnasio de Krav Maga.",
+    longDesc:
+      "Aplicación web full-stack para administrar miembros, pagos, clases y asistencia de un gimnasio. Incluye dashboard con métricas, sistema de membresías y autenticación.",
+    stack: ["React", "Node.js", "PostgreSQL", "Supabase", "TypeScript"],
+    stackColor: "cyan",
+    status: "En producción",
+    featured: true,
+    highlights: [
+      "Módulo de membresías con control de pagos y vencimientos",
+      "Dashboard con métricas de asistencia en tiempo real",
+      "Autenticación con Supabase Auth",
+      "Diseño responsive mobile-first",
+    ],
+    github: "https://github.com/tu-usuario/kravmaga",
+    demo: "https://kravmaga.vercel.app",
+    slides: kravSlides,   // ← el carrusel se activa solo si hay slides
+  },
+  {
+    title: "Sistema de Seguimiento de Becas",
+    description: "Plataforma institucional para gestión de convocatorias y becas universitarias.",
+    longDesc:
+      "Sistema desarrollado durante servicio social para una universidad. Gestiona convocatorias, solicitudes de becas, y configuración financiera por etapas de participación.",
+    stack: ["C#", "ASP.NET Core", "Blazor", "SQL Server", "ADO.NET"],
+    stackColor: "purple",
+    status: "En producción",
+    featured: true,
+    highlights: [
+      "Arquitectura en 3 capas con stored procedures como capa de negocio",
+      "Endpoints de guardado batch para escritura transaccional",
+      "Configuración de desglose financiero por convocatoria",
+      "Reportes y dashboards con Power BI embebido",
+    ],
+  },
+  {
+    title: "Portfolio Personal",
+    description: "Este mismo sitio — construido con Astro y CSS moderno.",
+    longDesc:
+      "Portafolio personal desarrollado con Astro como framework estático. Diseño con CSS custom properties, animaciones y layout responsivo sin dependencias externas.",
+    stack: ["Astro", "CSS", "TypeScript"],
+    stackColor: "amber",
+    status: "En desarrollo",
+    github: "https://github.com/tu-usuario/portfolio",
+  },
+];
+---
+
+<section id="proyectos">
+  <div class="divider"></div>
+  <div class="section-wrap">
+    <span class="section-label">Proyectos</span>
+    <h2 class="section-title">
+      Lo que he <span class="gradient-text">construido</span>
+    </h2>
+
+    <div class="projects-grid">
+      {projects.map((project, idx) => (
+        <article class={`project-card card ${project.featured ? 'featured' : ''} ${project.slides ? 'has-carousel' : ''}`}>
+
+          <!-- Header de la tarjeta -->
+          <div class="project-header">
+            <div class="project-meta">
+              <span class={`status-badge status-${project.status === 'En producción' ? 'prod' : project.status === 'En desarrollo' ? 'dev' : 'done'}`}>
+                {project.status}
+              </span>
+              {project.featured && <span class="featured-badge">⭐ Destacado</span>}
+            </div>
+
+            <!-- Links -->
+            <div class="project-links">
+              {project.github && (
+                <a href={project.github} target="_blank" rel="noopener" class="icon-link" title="GitHub">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+                </a>
+              )}
+              {project.demo && (
+                <a href={project.demo} target="_blank" rel="noopener" class="icon-link" title="Demo">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </a>
+              )}
+            </div>
+          </div>
+
+          <!-- Índice decorativo (solo si NO hay carrusel, para no chocar visualmente) -->
+          {!project.slides && <span class="project-index">0{idx + 1}</span>}
+
+          <!-- CARRUSEL — solo aparece si el proyecto tiene slides definidas -->
+          {project.slides && project.slides.length > 0 && (
+            <div class="carousel-wrapper">
+              <ProjectCarousel
+                slides={project.slides}
+                id={`carousel-${project.title.toLowerCase().replace(/\s+/g, '-')}`}
+              />
+            </div>
+          )}
+
+          <!-- Título y descripción -->
+          <h3 class="project-title">{project.title}</h3>
+          <p class="project-desc">{project.longDesc}</p>
+
+          <!-- Highlights -->
+          {project.highlights && (
+            <ul class="project-highlights">
+              {project.highlights.map(h => (
+                <li>{h}</li>
+              ))}
+            </ul>
+          )}
+
+          <!-- Stack tecnológico -->
+          <div class="project-stack">
+            {project.stack.map(tech => (
+              <span class={`tag ${project.stackColor === 'purple' ? 'purple' : project.stackColor === 'amber' ? 'amber' : ''}`}>
+                {tech}
+              </span>
+            ))}
+          </div>
+
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+  }
+
+  /* Las tarjetas featured (con carrusel) ocupan toda la fila */
+  .project-card.featured {
+    grid-column: 1 / -1;
+  }
+
+  /* Cuando hay carrusel, el layout interno cambia a dos columnas */
+  .project-card.featured .carousel-wrapper ~ * {
+    /* el texto va abajo del carrusel en móvil, al lado en desktop */
+  }
+
+  /* Layout especial para tarjeta con carrusel: side by side en desktop */
+  .project-card.has-carousel {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .project-card.has-carousel .carousel-wrapper {
+    grid-column: 1 / -1;
+    margin-bottom: 4px;
+  }
+
+  @media (min-width: 860px) {
+    .project-card.has-carousel {
+      grid-template-columns: 1.1fr 1fr;
+      grid-template-rows: auto;
+      column-gap: 32px;
+    }
+
+    .project-card.has-carousel .carousel-wrapper {
+      grid-column: 1;
+      grid-row: 1 / 6;
+      margin-bottom: 0;
+      align-self: start;
+    }
+
+    /* El header, título, desc, highlights, stack van en la columna derecha */
+    .project-card.has-carousel .project-header { grid-column: 2; }
+    .project-card.has-carousel .project-title  { grid-column: 2; }
+    .project-card.has-carousel .project-desc   { grid-column: 2; }
+    .project-card.has-carousel .project-highlights { grid-column: 2; }
+    .project-card.has-carousel .project-stack  { grid-column: 2; }
+  }
+
+  .carousel-wrapper {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* ── Tarjeta ── */
+  .project-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .project-card.featured {
+    border-color: rgba(0,198,255,0.2);
+    background: linear-gradient(135deg, rgba(0,198,255,0.04), rgba(139,92,246,0.04));
+  }
+
+  /* Línea de acento superior en featured */
+  .project-card.featured::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--grad);
+  }
+
+  /* ── Header ── */
+  .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .project-meta { display: flex; gap: 8px; align-items: center; }
+
+  .status-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.03em;
+  }
+
+  .status-prod {
+    background: rgba(34,197,94,0.1);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.2);
+  }
+
+  .status-dev {
+    background: rgba(245,158,11,0.1);
+    color: var(--amber);
+    border: 1px solid rgba(245,158,11,0.2);
+  }
+
+  .status-done {
+    background: rgba(139,92,246,0.1);
+    color: var(--purple);
+    border: 1px solid rgba(139,92,246,0.2);
+  }
+
+  .featured-badge {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+
+  .project-links { display: flex; gap: 8px; }
+
+  .icon-link {
+    color: var(--text-muted);
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+  }
+
+  .icon-link:hover { color: var(--cyan); }
+
+  /* ── Index decorativo ── */
+  .project-index {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.04);
+    line-height: 1;
+    position: absolute;
+    top: 56px; right: 24px;
+  }
+
+  /* ── Título ── */
+  .project-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  /* ── Descripción ── */
+  .project-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    flex: 1;
+  }
+
+  /* ── Highlights ── */
+  .project-highlights {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .project-highlights li {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .project-highlights li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--cyan);
+    font-size: 0.75rem;
+  }
+
+  /* ── Stack ── */
+  .project-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+</style>

@@ -1,0 +1,205 @@
+---
+/**
+ * Nav.astro — Barra de navegación fija en la parte superior.
+ *
+ * En Astro, los componentes .astro tienen dos zonas separadas por ---:
+ *   1. El "frontmatter" (entre --- y ---): aquí va lógica JS/TS que
+ *      corre en el SERVIDOR al momento de compilar. Es como el setup de Vue.
+ *   2. El template HTML: lo que se renderiza al browser.
+ *
+ * Nota: el JS en frontmatter NO llega al browser. Para lógica del browser
+ * usamos <script> dentro del template.
+ */
+
+const navLinks = [
+  { href: "#sobre-mi", label: "Sobre mí" },
+  { href: "#proyectos", label: "Proyectos" },
+  { href: "#experiencia", label: "Experiencia" },
+];
+---
+
+<nav id="nav">
+  <div class="nav-inner">
+    <!-- Logo / nombre -->
+    <a href="#" class="nav-logo">
+      Diego<span class="grad-dot">.</span>
+    </a>
+
+    <!-- Links de navegación -->
+    <ul class="nav-links">
+      {navLinks.map(link => (
+        <li>
+          <a href={link.href} class="nav-link">{link.label}</a>
+        </li>
+      ))}
+    </ul>
+
+    <!-- CTA Button -->
+    <a href="mailto:tu@email.com" class="btn btn-outline nav-cta">
+      Contacto
+    </a>
+
+    <!-- Hamburger para móvil -->
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <!-- Menu móvil -->
+  <div class="mobile-menu" id="mobileMenu">
+    {navLinks.map(link => (
+      <a href={link.href} class="mobile-link">{link.label}</a>
+    ))}
+    <a href="mailto:tu@email.com" class="btn btn-primary" style="width:100%;justify-content:center">Contacto</a>
+  </div>
+</nav>
+
+<!-- Script que corre EN EL BROWSER: scroll effect + mobile menu -->
+<script>
+  const nav = document.getElementById('nav')!;
+  const hamburger = document.getElementById('hamburger')!;
+  const mobileMenu = document.getElementById('mobileMenu')!;
+
+  // Agrega clase "scrolled" cuando el usuario baja de 60px
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  // Toggle del menú móvil
+  hamburger.addEventListener('click', () => {
+    mobileMenu.classList.toggle('open');
+    hamburger.classList.toggle('active');
+  });
+
+  // Cierra menú al hacer click en un link
+  document.querySelectorAll('.mobile-link').forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenu.classList.remove('open');
+      hamburger.classList.remove('active');
+    });
+  });
+</script>
+
+<style>
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    transition: background 0.4s, border-color 0.4s, backdrop-filter 0.4s;
+    border-bottom: 1px solid transparent;
+  }
+
+  nav.scrolled {
+    background: rgba(6, 6, 16, 0.85);
+    backdrop-filter: blur(20px);
+    border-color: var(--border);
+  }
+
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    margin-right: auto;
+  }
+
+  .grad-dot {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .nav-links {
+    display: flex;
+    list-style: none;
+    gap: 32px;
+  }
+
+  .nav-link {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    position: relative;
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--grad);
+    transform: scaleX(0);
+    transition: transform 0.2s;
+  }
+
+  .nav-link:hover { color: var(--text); }
+  .nav-link:hover::after { transform: scaleX(1); }
+
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
+
+  .hamburger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.active span:nth-child(2) { opacity: 0; }
+  .hamburger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .mobile-menu {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 24px 24px;
+    background: rgba(6,6,16,0.97);
+    border-top: 1px solid var(--border);
+  }
+
+  .mobile-menu.open { display: flex; }
+
+  .mobile-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    transition: color 0.2s;
+  }
+
+  .mobile-link:hover { color: var(--cyan); }
+
+  @media (max-width: 768px) {
+    .nav-links, .nav-cta { display: none; }
+    .hamburger { display: flex; }
+  }
+</style>

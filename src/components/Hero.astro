@@ -1,0 +1,277 @@
+---
+/**
+ * Hero.astro — La primera sección que el usuario ve.
+ * Su objetivo: comunicar quién eres y qué haces en menos de 5 segundos.
+ *
+ * Conceptos que aprenderás aquí:
+ * - Cómo usar variables en el template con {expresión}
+ * - CSS custom properties (variables de diseño)
+ * - Animaciones con @keyframes
+ * - Scoped styles: los <style> en Astro aplican SOLO a este componente
+ */
+
+const roles = ["Backend Developer", "Systems Analyst", "SQL Enthusiast", ".NET Developer"];
+---
+
+<section id="inicio" class="hero">
+  <!-- Orbes decorativos de fondo -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- Grid decorativo -->
+  <div class="hero-grid"></div>
+
+  <div class="hero-content">
+    <!-- Etiqueta de disponibilidad -->
+    <div class="availability-badge fade-up">
+      <span class="pulse-dot"></span>
+      Disponible para nuevas oportunidades
+    </div>
+
+    <!-- Nombre principal -->
+    <h1 class="hero-name fade-up" style="animation-delay: 0.1s">
+      Hola, soy<br />
+      <span class="gradient-text">Diego</span>
+    </h1>
+
+    <!-- Subtítulo con roles animados -->
+    <p class="hero-subtitle fade-up" style="animation-delay: 0.2s">
+      Ingeniero Administrador de Sistemas &mdash;
+      <span class="role-cycle" id="roleText">{roles[0]}</span>
+    </p>
+
+    <!-- Descripción corta -->
+    <p class="hero-desc fade-up" style="animation-delay: 0.3s">
+      Construyo soluciones de software con foco en backends robustos,
+      bases de datos relacionales y experiencias de usuario limpias.
+      Basado en <strong>Monterrey, México</strong>.
+    </p>
+
+    <!-- CTAs -->
+    <div class="hero-actions fade-up" style="animation-delay: 0.4s">
+      <a href="#proyectos" class="btn btn-primary">
+        Ver mis proyectos
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="#experiencia" class="btn btn-outline">Mi experiencia</a>
+    </div>
+
+    <!-- Stats rápidos -->
+    <div class="hero-stats fade-up" style="animation-delay: 0.5s">
+      <div class="stat">
+        <span class="stat-num gradient-text">2+</span>
+        <span class="stat-label">Años de experiencia</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num gradient-text">5+</span>
+        <span class="stat-label">Certificaciones</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num gradient-text">3+</span>
+        <span class="stat-label">Proyectos en producción</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="scroll-indicator">
+    <div class="scroll-line"></div>
+    <span>scroll</span>
+  </div>
+</section>
+
+<script>
+  // Cicla entre los roles cada 2.5 segundos
+  const roles = ["Backend Developer", "Systems Analyst", "SQL Enthusiast", ".NET Developer"];
+  const el = document.getElementById('roleText')!;
+  let i = 0;
+
+  setInterval(() => {
+    i = (i + 1) % roles.length;
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    setTimeout(() => {
+      el.textContent = roles[i];
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }, 300);
+  }, 2500);
+</script>
+
+<style>
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding: 120px 24px 80px;
+  }
+
+  /* ── Orbes de fondo ── */
+  .orb-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,198,255,0.18), transparent 70%);
+    top: -200px; right: -150px;
+  }
+
+  .orb-2 {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%);
+    bottom: -150px; left: -100px;
+  }
+
+  .orb-3 {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(245,158,11,0.1), transparent 70%);
+    top: 40%; left: 50%;
+  }
+
+  /* ── Grid decorativo ── */
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  /* ── Contenido ── */
+  .hero-content {
+    max-width: 700px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Badge de disponibilidad ── */
+  .availability-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1px solid rgba(0,198,255,0.2);
+    background: rgba(0,198,255,0.06);
+    font-size: 0.78rem;
+    color: var(--cyan);
+    margin-bottom: 28px;
+  }
+
+  .pulse-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--cyan);
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,198,255,0.5); }
+    50%       { box-shadow: 0 0 0 6px rgba(0,198,255,0); }
+  }
+
+  /* ── Nombre ── */
+  .hero-name {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+  }
+
+  /* ── Subtítulo ── */
+  .hero-subtitle {
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .role-cycle {
+    color: var(--cyan);
+    font-weight: 500;
+    transition: opacity 0.3s, transform 0.3s;
+    display: inline-block;
+  }
+
+  /* ── Descripción ── */
+  .hero-desc {
+    font-size: 1rem;
+    color: var(--text-muted);
+    max-width: 560px;
+    margin-bottom: 36px;
+    line-height: 1.75;
+  }
+
+  .hero-desc strong { color: var(--text); }
+
+  /* ── Botones ── */
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 56px;
+  }
+
+  /* ── Stats ── */
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--border);
+  }
+
+  /* ── Scroll indicator ── */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(to bottom, var(--cyan), transparent);
+    animation: scrollLine 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollLine {
+    0%   { transform: scaleY(0); transform-origin: top; }
+    50%  { transform: scaleY(1); transform-origin: top; }
+    51%  { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+</style>
