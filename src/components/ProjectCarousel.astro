@@ -1,20 +1,15 @@
 ---
 /**
- * ProjectCarousel.astro — Carrusel de capturas de pantalla para un proyecto.
+ * ProjectCarousel.astro — Carrusel con LIGHTBOX integrado.
  *
- * Conceptos que aprenderás aquí:
- * - Props tipadas con interface: cómo un componente recibe datos del padre
- * - Generación de IDs únicos: para que puedas usar varios carruseles en la misma página
- * - Manipulación del DOM con querySelector en <script>
- * - El patrón "data attribute": pasar datos del template al script sin variables globales
- *
- * USO desde otro componente:
- *   <ProjectCarousel
- *     slides={[
- *       { src: "/img/krav-1.png", caption: "Dashboard principal" },
- *       { src: "/img/krav-2.png", caption: "Gestión de miembros" },
- *     ]}
- *   />
+ * Conceptos:
+ * - Lightbox: overlay fullscreen que muestra la imagen a tamaño completo
+ * - Patrón singleton: el lightbox se crea UNA sola vez aunque haya
+ *   múltiples carruseles (chequeamos si ya existe antes de crear)
+ * - document.body.appendChild: agregar elementos al DOM desde JS
+ * - pointer-events: none / all — controlar si un elemento recibe clicks
+ * - overflow: hidden en body — bloquear scroll cuando el lightbox está abierto
+ * - Image preloading: new Image() para pre-cargar antes de mostrar
  */
 
 interface Slide {
@@ -25,7 +20,6 @@ interface Slide {
 
 interface Props {
   slides: Slide[];
-  /** ID único — necesario si hay varios carruseles en la misma página */
   id?: string;
 }
 
@@ -34,41 +28,41 @@ const { slides, id = "carousel-" + Math.random().toString(36).slice(2, 7) } = As
 
 <div class="carousel" data-carousel-id={id} id={id}>
 
-  <!-- Área de imagen principal -->
   <div class="carousel-stage">
 
-    <!-- Botón anterior -->
     <button class="carousel-btn btn-prev" aria-label="Anterior">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <polyline points="15 18 9 12 15 6"/>
       </svg>
     </button>
 
-    <!-- Track: contiene todas las slides -->
     <div class="carousel-track-wrap">
       <div class="carousel-track">
         {slides.map((slide, i) => (
           <div class="carousel-slide" data-index={i}>
-            <img
-              src={slide.src}
-              alt={slide.alt ?? slide.caption}
-              loading={i === 0 ? "eager" : "lazy"}
-            />
-            <!-- Overlay degradado inferior para que el caption sea legible -->
+            <img src={slide.src} alt={slide.alt ?? slide.caption} loading={i === 0 ? "eager" : "lazy"} />
             <div class="slide-overlay"></div>
           </div>
         ))}
       </div>
     </div>
 
-    <!-- Botón siguiente -->
     <button class="carousel-btn btn-next" aria-label="Siguiente">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <polyline points="9 18 15 12 9 6"/>
       </svg>
     </button>
 
-    <!-- Caption flotante -->
+    <!-- Botón zoom — esquina superior derecha -->
+    <button class="btn-zoom" aria-label="Ver imagen completa" title="Ver imagen completa">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="15 3 21 3 21 9"/>
+        <polyline points="9 21 3 21 3 15"/>
+        <line x1="21" y1="3" x2="14" y2="10"/>
+        <line x1="3" y1="21" x2="10" y2="14"/>
+      </svg>
+    </button>
+
     <div class="carousel-caption">
       <span class="caption-counter">
         <span class="caption-current">1</span> / {slides.length}
@@ -77,15 +71,10 @@ const { slides, id = "carousel-" + Math.random().toString(36).slice(2, 7) } = As
     </div>
   </div>
 
-  <!-- Thumbnails / dots de navegación -->
   <div class="carousel-thumbs">
     {slides.map((slide, i) => (
-      <button
-        class={`thumb ${i === 0 ? 'thumb-active' : ''}`}
-        data-thumb-index={i}
-        aria-label={`Ir a imagen ${i + 1}`}
-        title={slide.caption}
-      >
+      <button class={`thumb ${i === 0 ? 'thumb-active' : ''}`} data-thumb-index={i}
+        aria-label={`Ir a imagen ${i + 1}`} title={slide.caption}>
         <img src={slide.src} alt={slide.alt ?? slide.caption} loading="lazy" />
         <div class="thumb-overlay"></div>
       </button>
@@ -94,284 +83,445 @@ const { slides, id = "carousel-" + Math.random().toString(36).slice(2, 7) } = As
 
 </div>
 
-<!--
-  El script usa data-carousel-id para encontrar SU carrusel específico.
-  Esto es importante: si usas dos <ProjectCarousel /> en la misma página,
-  cada uno necesita operar sobre sus propios elementos, no los de otro.
--->
 <script>
-  // Inicializa todos los carruseles que existan en la página
-  document.querySelectorAll('[data-carousel-id]').forEach(carouselEl => {
-    initCarousel(carouselEl as HTMLElement);
+  // ──────────────────────────────────────────────────────────────
+  // LIGHTBOX — singleton global
+  // Patrón singleton: solo existe UNA instancia del lightbox en toda
+  // la página, sin importar cuántos carruseles haya. Se crea lazy
+  // (la primera vez que se necesita) con getLightbox().
+  // ──────────────────────────────────────────────────────────────
+
+  let lbSlides: Array<{ src: string; caption: string }> = [];
+  let lbCurrent = 0;
+  let lbInitialized = false;
+
+  function getLightbox(): HTMLElement {
+    // Si ya existe, lo devolvemos (no lo recreamos)
+    const existing = document.getElementById('global-lightbox');
+    if (existing) return existing;
+
+    const lb = document.createElement('div');
+    lb.id = 'global-lightbox';
+    lb.setAttribute('role', 'dialog');
+    lb.setAttribute('aria-modal', 'true');
+    lb.innerHTML = `
+      <div class="lb-backdrop"></div>
+      <div class="lb-ui">
+        <button class="lb-close" aria-label="Cerrar (Esc)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <div class="lb-main">
+          <button class="lb-nav lb-prev" aria-label="Anterior">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="lb-img-wrap">
+            <img class="lb-img" src="" alt="" />
+            <div class="lb-loader">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(0,198,255,0.7)" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+            </div>
+          </div>
+          <button class="lb-nav lb-next" aria-label="Siguiente">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+        <div class="lb-footer">
+          <p class="lb-caption"></p>
+          <span class="lb-counter"></span>
+          <span class="lb-hint">ESC · ← →</span>
+        </div>
+      </div>
+    `;
+
+    // Inyectar los estilos del lightbox una sola vez en el <head>
+    if (!document.getElementById('lb-css')) {
+      const s = document.createElement('style');
+      s.id = 'lb-css';
+      s.textContent = `
+        #global-lightbox {
+          position: fixed; inset: 0; z-index: 9998;
+          display: flex; align-items: center; justify-content: center;
+          opacity: 0; pointer-events: none;
+          transition: opacity 0.25s ease;
+        }
+        #global-lightbox.open { opacity: 1; pointer-events: all; }
+
+        .lb-backdrop {
+          position: absolute; inset: 0;
+          background: rgba(3, 3, 10, 0.95);
+          backdrop-filter: blur(20px);
+          cursor: zoom-out;
+        }
+
+        .lb-ui {
+          position: relative; z-index: 1;
+          display: flex; flex-direction: column; align-items: center;
+          gap: 16px; width: 100%; max-width: min(1440px, 96vw);
+          padding: 0 16px;
+        }
+
+        .lb-close {
+          align-self: flex-end;
+          width: 38px; height: 38px; border-radius: 50%;
+          background: rgba(255,255,255,0.07);
+          border: 1px solid rgba(255,255,255,0.12);
+          color: rgba(228,228,240,0.7); cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+        }
+        .lb-close:hover {
+          background: rgba(248,113,113,0.15);
+          border-color: rgba(248,113,113,0.35);
+          color: #f87171; transform: rotate(90deg);
+        }
+
+        .lb-main {
+          display: flex; align-items: center; gap: 12px; width: 100%;
+        }
+
+        .lb-img-wrap {
+          flex: 1; display: flex; align-items: center; justify-content: center;
+          min-height: 100px; position: relative;
+        }
+
+        .lb-img {
+          max-width: 100%; max-height: 78vh;
+          width: auto; height: auto;
+          border-radius: 10px;
+          box-shadow: 0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05);
+          object-fit: contain; display: block;
+          transition: opacity 0.2s ease;
+          cursor: default;
+        }
+        .lb-img.loading { opacity: 0; }
+
+        .lb-loader {
+          position: absolute; display: none;
+          animation: lbSpin 1s linear infinite;
+        }
+        .lb-img.loading ~ .lb-loader { display: block; }
+        @keyframes lbSpin { to { transform: rotate(360deg); } }
+
+        .lb-nav {
+          flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(228,228,240,0.65); cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+        }
+        .lb-nav:hover {
+          background: rgba(0,198,255,0.12);
+          border-color: rgba(0,198,255,0.3);
+          color: #00c6ff; transform: scale(1.08);
+        }
+
+        .lb-footer {
+          display: flex; align-items: center; gap: 12px;
+          width: 100%; padding: 0 60px;
+        }
+        .lb-caption {
+          flex: 1; margin: 0;
+          color: rgba(228,228,240,0.6); font-size: 0.85rem;
+          font-family: 'DM Sans', sans-serif;
+          transition: opacity 0.15s;
+        }
+        .lb-counter {
+          flex-shrink: 0; font-size: 0.72rem; font-weight: 700;
+          color: #00c6ff; background: rgba(0,198,255,0.08);
+          border: 1px solid rgba(0,198,255,0.2);
+          padding: 2px 10px; border-radius: 100px;
+          font-family: 'Syne', sans-serif;
+        }
+        .lb-hint {
+          font-size: 0.62rem; color: rgba(228,228,240,0.18);
+          letter-spacing: 0.08em; font-family: 'DM Sans', sans-serif;
+        }
+
+        @media (max-width: 600px) {
+          .lb-nav { width: 36px; height: 36px; }
+          .lb-footer { padding: 0 4px; }
+          .lb-hint { display: none; }
+        }
+      `;
+      document.head.appendChild(s);
+    }
+
+    document.body.appendChild(lb);
+
+    lb.querySelector('.lb-backdrop')!.addEventListener('click', closeLightbox);
+    lb.querySelector('.lb-close')!.addEventListener('click', closeLightbox);
+    lb.querySelector('.lb-prev')!.addEventListener('click', () => lbNav(-1));
+    lb.querySelector('.lb-next')!.addEventListener('click', () => lbNav(+1));
+
+    return lb;
+  }
+
+  function lbNav(dir: number) {
+    lbCurrent = (lbCurrent + dir + lbSlides.length) % lbSlides.length;
+    renderLb();
+  }
+
+  function renderLb() {
+    const lb      = document.getElementById('global-lightbox')!;
+    const img     = lb.querySelector<HTMLImageElement>('.lb-img')!;
+    const caption = lb.querySelector<HTMLElement>('.lb-caption')!;
+    const counter = lb.querySelector<HTMLElement>('.lb-counter')!;
+    const slide   = lbSlides[lbCurrent];
+
+    // Precargar la imagen antes de mostrarla para evitar el "parpadeo"
+    img.classList.add('loading');
+    const tmp = new Image();
+    tmp.onload = () => {
+      img.src = tmp.src;
+      img.alt = slide.caption;
+      img.classList.remove('loading');
+    };
+    tmp.onerror = () => img.classList.remove('loading');
+    tmp.src = slide.src;
+
+    caption.style.opacity = '0';
+    setTimeout(() => {
+      caption.textContent = slide.caption;
+      caption.style.opacity = '1';
+    }, 120);
+
+    counter.textContent = `${lbCurrent + 1} / ${lbSlides.length}`;
+  }
+
+  function openLightbox(slides: Array<{ src: string; caption: string }>, index: number) {
+    lbSlides  = slides;
+    lbCurrent = index;
+    const lb = getLightbox();
+    renderLb();
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden'; // bloquea scroll de fondo
+  }
+
+  function closeLightbox() {
+    document.getElementById('global-lightbox')?.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Teclado global — solo actúa si el lightbox está abierto
+  if (!lbInitialized) {
+    lbInitialized = true;
+    document.addEventListener('keydown', e => {
+      if (!document.getElementById('global-lightbox')?.classList.contains('open')) return;
+      if (e.key === 'Escape')     closeLightbox();
+      if (e.key === 'ArrowLeft')  lbNav(-1);
+      if (e.key === 'ArrowRight') lbNav(+1);
+    });
+    // Swipe táctil en el lightbox
+    let lbTx = 0;
+    document.addEventListener('touchstart', e => {
+      if (document.getElementById('global-lightbox')?.classList.contains('open'))
+        lbTx = e.touches[0].clientX;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (!document.getElementById('global-lightbox')?.classList.contains('open')) return;
+      const d = lbTx - e.changedTouches[0].clientX;
+      if (Math.abs(d) > 50) lbNav(d > 0 ? 1 : -1);
+    });
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // CARRUSEL
+  // ──────────────────────────────────────────────────────────────
+
+  document.querySelectorAll('[data-carousel-id]').forEach(el => {
+    initCarousel(el as HTMLElement);
   });
 
   function initCarousel(el: HTMLElement) {
-    // Referencias a los elementos DOM de ESTE carrusel
     const track       = el.querySelector<HTMLElement>('.carousel-track')!;
-    const slides      = el.querySelectorAll<HTMLElement>('.carousel-slide');
+    const slideEls    = el.querySelectorAll<HTMLElement>('.carousel-slide');
     const thumbs      = el.querySelectorAll<HTMLButtonElement>('.thumb');
     const btnPrev     = el.querySelector<HTMLButtonElement>('.btn-prev')!;
     const btnNext     = el.querySelector<HTMLButtonElement>('.btn-next')!;
+    const btnZoom     = el.querySelector<HTMLButtonElement>('.btn-zoom')!;
     const captionText = el.querySelector<HTMLElement>('.caption-text')!;
     const captionCurr = el.querySelector<HTMLElement>('.caption-current')!;
 
-    // Obtemos los captions de cada slide desde los alt de las imágenes
-    const captions = Array.from(slides).map(s =>
-      s.querySelector('img')!.alt
-    );
+    // Extraemos src y caption de cada imagen para pasarlos al lightbox
+    const slidesData = Array.from(slideEls).map(s => ({
+      src:     (s.querySelector('img') as HTMLImageElement).src,
+      caption: (s.querySelector('img') as HTMLImageElement).alt,
+    }));
 
     let current = 0;
 
-    /**
-     * goTo(index) — Navega a un slide específico.
-     * Esta función centraliza toda la lógica de cambio de slide.
-     * Principio: un solo lugar que actualiza todo el estado visual.
-     */
     function goTo(index: number) {
-      // Wrap-around: si pasas del último, vuelves al primero
-      current = (index + slides.length) % slides.length;
-
-      // Mover el track con CSS transform (más performante que cambiar left/margin)
+      current = (index + slideEls.length) % slideEls.length;
       track.style.transform = `translateX(-${current * 100}%)`;
-
-      // Actualizar thumbnails
-      thumbs.forEach((thumb, i) => {
-        thumb.classList.toggle('thumb-active', i === current);
-      });
-
-      // Actualizar caption con animación fade
+      thumbs.forEach((t, i) => t.classList.toggle('thumb-active', i === current));
       captionText.style.opacity = '0';
       captionText.style.transform = 'translateY(6px)';
       captionCurr.textContent = String(current + 1);
-
       setTimeout(() => {
-        captionText.textContent = captions[current];
+        captionText.textContent = slidesData[current].caption;
         captionText.style.opacity = '1';
         captionText.style.transform = 'translateY(0)';
       }, 200);
     }
 
-    // Event listeners
-    btnPrev.addEventListener('click', () => goTo(current - 1));
-    btnNext.addEventListener('click', () => goTo(current + 1));
+    // e.stopPropagation() en prev/next evita que el click
+    // se propague al track y abra el lightbox accidentalmente
+    btnPrev.addEventListener('click', e => { e.stopPropagation(); goTo(current - 1); });
+    btnNext.addEventListener('click', e => { e.stopPropagation(); goTo(current + 1); });
+    btnZoom.addEventListener('click', e => { e.stopPropagation(); openLightbox(slidesData, current); });
+    thumbs.forEach((t, i) => t.addEventListener('click', () => goTo(i)));
 
-    thumbs.forEach((thumb, i) => {
-      thumb.addEventListener('click', () => goTo(i));
+    // Click directo en la imagen → abre lightbox
+    el.querySelector('.carousel-track-wrap')!.addEventListener('click', () => {
+      openLightbox(slidesData, current);
     });
 
-    // Swipe táctil (para móvil)
-    let touchStartX = 0;
-
-    el.addEventListener('touchstart', e => {
-      touchStartX = e.touches[0].clientX;
-    }, { passive: true });
-
+    // Swipe táctil en el carrusel
+    let tx = 0;
+    el.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
     el.addEventListener('touchend', e => {
-      const delta = touchStartX - e.changedTouches[0].clientX;
-      if (Math.abs(delta) > 50) {        // threshold: 50px
-        goTo(delta > 0 ? current + 1 : current - 1);
-      }
+      const d = tx - e.changedTouches[0].clientX;
+      if (Math.abs(d) > 50) goTo(d > 0 ? current + 1 : current - 1);
     });
 
-    // Teclado (accesibilidad) — solo cuando el carrusel tiene foco
+    // Teclado cuando el carrusel tiene foco
     el.addEventListener('keydown', e => {
       if (e.key === 'ArrowLeft')  goTo(current - 1);
       if (e.key === 'ArrowRight') goTo(current + 1);
     });
 
-    // Auto-play opcional (pausado al hacer hover)
-    let autoplay = setInterval(() => goTo(current + 1), 4000);
-
-    el.addEventListener('mouseenter', () => clearInterval(autoplay));
-    el.addEventListener('mouseleave', () => {
-      autoplay = setInterval(() => goTo(current + 1), 4000);
-    });
+    // Auto-play — se pausa con hover
+    let ap = setInterval(() => goTo(current + 1), 4000);
+    el.addEventListener('mouseenter', () => clearInterval(ap));
+    el.addEventListener('mouseleave', () => { ap = setInterval(() => goTo(current + 1), 4000); });
   }
 </script>
 
 <style>
-  /* ── Contenedor principal ── */
   .carousel {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    border-radius: var(--radius);
-    overflow: hidden;
-    outline: none;   /* foco manejado visualmente por los botones */
+    display: flex; flex-direction: column; gap: 12px;
+    border-radius: var(--radius); overflow: hidden; outline: none;
   }
 
-  /* ── Stage: donde vive la imagen grande ── */
   .carousel-stage {
-    position: relative;
-    border-radius: var(--radius);
-    overflow: hidden;
-    background: var(--bg-2);
-    aspect-ratio: 16 / 9;  /* mantiene la proporción de pantalla */
+    position: relative; border-radius: var(--radius); overflow: hidden;
+    background: var(--bg-2); aspect-ratio: 16 / 9;
     border: 1px solid var(--border);
+    cursor: zoom-in; /* indica visualmente que la imagen es clickeable */
   }
 
-  /* ── Track: los slides en fila horizontal ── */
-  .carousel-track-wrap {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
+  .carousel-track-wrap { width: 100%; height: 100%; overflow: hidden; }
 
   .carousel-track {
-    display: flex;
-    height: 100%;
-    /* transition en el transform = animación del deslizamiento */
+    display: flex; height: 100%;
     transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
-  /* ── Cada slide ── */
-  .carousel-slide {
-    flex: 0 0 100%;   /* no shrink, no grow, ocupa exactamente 100% del padre */
-    height: 100%;
-    position: relative;
-  }
+  .carousel-slide { flex: 0 0 100%; height: 100%; position: relative; }
 
   .carousel-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;   /* la imagen cubre sin deformarse */
-    display: block;
+    width: 100%; height: 100%; object-fit: cover; display: block;
     transition: transform 0.5s ease;
   }
 
-  .carousel-stage:hover .carousel-slide img {
-    transform: scale(1.02);
-  }
+  .carousel-stage:hover .carousel-slide img { transform: scale(1.02); }
 
-  /* ── Overlay degradado inferior ── */
   .slide-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      to bottom,
-      transparent 40%,
-      rgba(6, 6, 16, 0.85) 100%
-    );
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, rgba(6,6,16,0.85) 100%);
     pointer-events: none;
   }
 
-  /* ── Botones prev/next ── */
+  /* Botones prev/next */
   .carousel-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: rgba(6, 6, 16, 0.7);
-    border: 1px solid var(--border);
-    color: var(--text);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(8px);
-    transition: all 0.2s;
-    opacity: 0;   /* ocultos hasta hover del stage */
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(6,6,16,0.7); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px); transition: all 0.2s; opacity: 0;
   }
-
-  .carousel-stage:hover .carousel-btn {
-    opacity: 1;
-  }
-
+  .carousel-stage:hover .carousel-btn { opacity: 1; }
   .btn-prev { left: 12px; }
   .btn-next { right: 12px; }
-
   .carousel-btn:hover {
-    background: rgba(0, 198, 255, 0.15);
-    border-color: rgba(0, 198, 255, 0.35);
-    color: var(--cyan);
+    background: rgba(0,198,255,0.15);
+    border-color: rgba(0,198,255,0.35); color: var(--cyan);
   }
 
-  /* ── Caption ── */
+  /* Botón zoom — esquina superior derecha */
+  .btn-zoom {
+    position: absolute; top: 10px; right: 10px; z-index: 10;
+    width: 32px; height: 32px; border-radius: 7px;
+    background: rgba(6,6,16,0.75); border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(228,228,240,0.55); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px); transition: all 0.2s; opacity: 0.75;
+  }
+  .carousel-stage:hover .btn-zoom { opacity: 1; }
+  .btn-zoom:hover {
+    background: rgba(0,198,255,0.15);
+    border-color: rgba(0,198,255,0.4); color: var(--cyan);
+    transform: scale(1.1);
+  }
+
+  /* Hint "Click para ampliar" */
+  .carousel-stage::after {
+    content: 'Click para ampliar';
+    position: absolute; bottom: 42px; right: 12px;
+    font-size: 0.6rem; color: rgba(228,228,240,0.3);
+    letter-spacing: 0.07em; pointer-events: none;
+    opacity: 0; transition: opacity 0.3s; z-index: 5;
+  }
+  .carousel-stage:hover::after { opacity: 1; }
+
+  /* Caption */
   .carousel-caption {
-    position: absolute;
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 10;
+    display: flex; align-items: center; gap: 10px; pointer-events: none;
   }
-
   .caption-counter {
-    font-family: var(--font-display);
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--cyan);
-    background: rgba(0,198,255,0.1);
-    border: 1px solid rgba(0,198,255,0.2);
-    padding: 2px 8px;
-    border-radius: 100px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    font-family: var(--font-display); font-size: 0.7rem; font-weight: 700;
+    color: var(--cyan); background: rgba(0,198,255,0.1);
+    border: 1px solid rgba(0,198,255,0.2); padding: 2px 8px;
+    border-radius: 100px; white-space: nowrap; flex-shrink: 0;
   }
-
   .caption-text {
-    font-size: 0.82rem;
-    color: rgba(228, 228, 240, 0.9);
+    font-size: 0.8rem; color: rgba(228,228,240,0.85);
     transition: opacity 0.2s, transform 0.2s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* ── Thumbnails ── */
+  /* Thumbnails */
   .carousel-thumbs {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0,198,255,0.3) transparent;
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(0,198,255,0.3) transparent;
   }
-
   .thumb {
-    flex: 0 0 80px;
-    height: 52px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 2px solid transparent;
-    cursor: pointer;
-    padding: 0;
-    background: none;
-    position: relative;
-    transition: border-color 0.2s, transform 0.2s;
+    flex: 0 0 80px; height: 52px; border-radius: 8px; overflow: hidden;
+    border: 2px solid transparent; cursor: pointer; padding: 0;
+    background: none; position: relative; transition: border-color 0.2s, transform 0.2s;
   }
-
   .thumb:hover { transform: translateY(-2px); }
-
   .thumb.thumb-active {
-    border-color: var(--cyan);
-    box-shadow: 0 0 12px rgba(0,198,255,0.3);
+    border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,198,255,0.3);
   }
-
-  .thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .thumb-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(6,6,16,0.5);
-    transition: background 0.2s;
+    position: absolute; inset: 0;
+    background: rgba(6,6,16,0.5); transition: background 0.2s;
   }
-
   .thumb.thumb-active .thumb-overlay,
-  .thumb:hover .thumb-overlay {
-    background: transparent;
-  }
+  .thumb:hover .thumb-overlay { background: transparent; }
 
-  /* ── Responsive ── */
   @media (max-width: 600px) {
     .thumb { flex: 0 0 64px; height: 42px; }
     .carousel-btn { width: 32px; height: 32px; }
